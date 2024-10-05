@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .file-display {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .actions button {
+            width: 48%;
+        }
+
+        .message {
+            margin: 15px 0;
+            text-align: center;
+            color: green;
+        }
+
+        .version-control {
+            margin-top: 30px;
+        }
+
+        .version-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .version-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .version-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Document Management System</h1>
+
+        <!-- PDF Upload Form -->
+        <form action="/" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="pdfFile">Upload PDF</label>
+                <input type="file" id="pdfFile" name="pdfFile" accept=".pdf" required>
+            </div>
+            <button type="submit">Upload PDF & Scrape</button>
+        </form>
+
+        <!-- Display File Name if Uploaded -->
+        {% if uploaded_file %}
+            <div class="file-display">
+                Uploaded PDF: {{ uploaded_file }}
+            </div>
+        {% endif %}
+
+        <br/>
+
+        <!-- Generate Word Document -->
+        <form action="/generate_docx" method="post">
+            <button type="submit">Generate Word Document</button>
+        </form>
+
+        <br/>
+
+        <!-- Edit in Word and Upload Edited Document -->
+        <form action="/" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="docxFile">Upload Edited Word Document (.docx)</label>
+                <input type="file" id="docxFile" name="docxFile" accept=".docx" required>
+            </div>
+            <button type="submit">Upload and Save Changes</button>
+        </form>
+
+        <!-- Message after saving changes -->
+        {% if message %}
+            <div class="message">
+                {{ message }}
+            </div>
+        {% endif %}
+
+        <!-- Version Control Section -->
+        <div class="version-control">
+            <h2>Version Control</h2>
+            <div class="version-list">
+                {% for version in versions %}
+                    <div class="version-item">
+                        <span>{{ version.timestamp }} - Version {{ version.id }}</span>
+                        <div>
+                            <form action="/restore_version" method="post" style="display:inline;">
+                                <input type="hidden" name="version_id" value="{{ version.id }}">
+                                <button type="submit">Restore</button>
+                            </form>
+                            <form action="/delete_version" method="post" style="display:inline;">
+                                <input type="hidden" name="version_id" value="{{ version.id }}">
+                                <button type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
