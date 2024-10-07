@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, send_file,
 import os
 import pdfplumber
 from docx import Document
+from docx.shared import Inches
 import io
 import sqlite3
 from datetime import datetime
@@ -15,7 +16,6 @@ DB_PATH = 'versions.db'
 # Create necessary folders if they don't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(VERSION_FOLDER, exist_ok=True)
-
 
 # SQLite setup for version control
 def init_db():
@@ -31,10 +31,8 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 # Initialize DB
 init_db()
-
 
 # Home Route
 @app.route("/", methods=["GET", "POST"])
@@ -70,17 +68,42 @@ def index():
     return render_template("upload.html", versions=versions)
 
 
-# PDF scraping and save to versions folder
+# PDF scraping and save to versions folder (text, tables, images, formatting)
 def scrape_pdf_and_save(file_path):
-    # Extract text from PDF using pdfplumber
-    with pdfplumber.open(file_path) as pdf:
-        full_text = ""
-        for page in pdf.pages:
-            full_text += page.extract_text() + "\n"
+    doc = Document()  # Create a new Word document
 
-    # Save text as a Word document (initial version)
-    doc = Document()
-    doc.add_paragraph(full_text)
+    with pdfplumber.open(file_path) as pdf:
+        # Iterate over each page
+        for page_num, page in enumerate(pdf.pages):
+            # Extract text and add to Word document
+            text = page.extract_text()
+            if text:
+                doc.add_paragraph(f"Page {page_num + 1} Text:\n{text}")
+
+            # Extract and format tables
+            tables = page.extract_table()
+            if tables:
+                doc.add_paragraph(f"Page {page_num + 1} Tables:")
+                for table in tables:
+                    table_str = '\n'.join(['\t'.join(row) for row in table if row])
+                    doc.add_paragraph(table_str)
+
+            # Extract images and add to Word document
+            for image in page.images:
+                # Get image properties and extract it
+                img_bbox = (image['x0'], image['top'], image['x1'], image['bottom'])
+                img = page.within_bbox(img_bbox).to_image()
+
+                # Save image to a bytes stream
+                img_stream = io.BytesIO()
+                img.save(img_stream, format="PNG")
+                img_stream.seek(0)
+
+                # Add image to the Word document
+                doc.add_paragraph(f"Page {page_num + 1} Image:")
+                doc.add_picture(img_stream, width=Inches(4.5))  # Adjust width as necessary
+
+    # Save document to file
     output_filename = os.path.splitext(os.path.basename(file_path))[0] + "_scraped.docx"
     output_path = os.path.join(VERSION_FOLDER, output_filename)
     doc.save(output_path)
